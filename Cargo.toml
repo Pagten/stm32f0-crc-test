@@ -1,0 +1,20 @@
+[workspace]
+[package]
+authors = ["Pieter Agten <pieter.agten@gmail.com>"]
+edition = "2018"
+name = "stm32f0-crc-test"
+version = "0.1.0"
+
+[dependencies]
+alloc-cortex-m = "0.4.2"
+cortex-m = "0.6.2"
+cortex-m-rt = "0.6.12"
+crc-any = "2.4.2"
+panic-halt = "0.2.0"
+stm32f0xx-hal = { version = "0.18.0", features = ["stm32f072", "rt"] }
+strum = { version = "0.24.0", default-features = false, features = ["derive"] }
+
+[[bin]]
+name = "stm32f0-crc-test"
+test = false
+bench = false
