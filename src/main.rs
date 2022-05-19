@@ -79,9 +79,13 @@ fn main() -> ! {
 }
 
 fn run_tests<S: Write>(serial: &mut S, crc: &mut stm32::CRC) {
-    serial.write_str("\r\n\
-                         Type  | Polynomial | Input refl | Output refl |   Init val | Test |     Output | Result\r\n\
-                         ---------------------------------------------------------------------------------------\r\n").unwrap();
+    let mut passed = 0u32;
+    let mut failed= 0u32;
+    serial.write_str(
+    "\r\n\
+     Type  | Polynomial | Input refl | Output refl |   Init val | Test |     Output | Result\r\n\
+     ---------------------------------------------------------------------------------------\r\n"
+    ).unwrap();
     for polynomial in POLYNOMIALS {
         for reflect_input in BitReversal::iter() {
             for reflect_output in [false, true] {
@@ -97,15 +101,17 @@ fn run_tests<S: Write>(serial: &mut S, crc: &mut stm32::CRC) {
                             steps,
                         };
 
-
                         let name = format!("{:>5} | 0x{:08x} | {:>10} | {:>11} | 0x{:08x} | {:>4}",
                            polynomial, polynomial.value(), reflect_input, to_enabled_disabled(reflect_output), initial_value, i);
-                        crc_test(serial, crc, &calculation, &name);
+                        let pass = crc_test(serial, crc, &calculation, &name);
+                        if pass { passed += 1; } else { failed += 1; }
                     }
                 }
             }
         }
     }
+    let result = if failed == 0 { "ok" } else { "FAILED" };
+    serial.write_fmt(format_args!("test result: {}. {} passed; {} failed\r\n", result, passed, failed)).unwrap();
 }
 
 fn to_enabled_disabled(v: bool) -> &'static str {
@@ -116,14 +122,16 @@ fn to_enabled_disabled(v: bool) -> &'static str {
     }
 }
 
-fn crc_test<S: Write>(serial: &mut S, crc: &mut stm32::CRC, calculation: &CrcCalculation, name: &str) {
+fn crc_test<S: Write>(serial: &mut S, crc: &mut stm32::CRC, calculation: &CrcCalculation, name: &str) -> bool {
     let expected_output = calculation.run_software();
     let output = calculation.run_hardware(crc);
     serial.write_fmt(format_args!("{} | 0x{:08x} | ", name, output)).unwrap();
     if output == expected_output {
         serial.write_str("    OK\r\n").unwrap();
+        true
     } else {
         serial.write_fmt(format_args!("failed - expected 0x{:08x})\r\n", expected_output)).unwrap();
+        false
     }
 }
 
